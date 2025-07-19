@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    textarea {
+      height: 100px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .success-message {
+      background-color: #dff0d8;
+      color: #3c763d;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      display: none;
+    }
+    .error-message {
+      background-color: #f2dede;
+      color: #a94442;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>We Value Your Feedback</h1>
+  
+  <div id="success-message" class="success-message">Thank you for your feedback!</div>
+  <div id="error-message" class="error-message">There was an error submitting your feedback. Please try again.</div>
+  
+  <form id="feedback-form">
+    <div class="form-group">
+      <label for="rating">How would you rate your experience?</label>
+      <select id="rating" name="rating" required>
+        <option value="">Select a rating</option>
+        <option value="5">Excellent (5)</option>
+        <option value="4">Good (4)</option>
+        <option value="3">Average (3)</option>
+        <option value="2">Below Average (2)</option>
+        <option value="1">Poor (1)</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label for="comments">Comments</label>
+      <textarea id="comments" name="comments" placeholder="Please share your thoughts..."></textarea>
+    </div>
+    
+    <div class="form-group">
+      <label for="email">Email (optional)</label>
+      <input type="email" id="email" name="email" placeholder="Your email address">
+    </div>
+    
+    <button type="submit">Submit Feedback</button>
+  </form>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('feedback-form');
+      const successMessage = document.getElementById('success-message');
+      const errorMessage = document.getElementById('error-message');
+      
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = {
+          rating: document.getElementById('rating').value,
+          comments: document.getElementById('comments').value,
+          email: document.getElementById('email').value,
+          page: document.referrer || 'Unknown',
+          userAgent: navigator.userAgent
+        };
+        
+        // Submit data to server
+        fetch('/submit-feedback', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Show success message
+            form.reset();
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+            
+            // Close the window after 3 seconds
+            setTimeout(() => {
+              window.close();
+            }, 3000);
+          } else {
+            // Show error message
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          errorMessage.style.display = 'block';
+          successMessage.style.display = 'none';
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "showAfterSeconds": 3,
+  "message": "How likely are you to recommend DHL Express to a friend or colleague?",
+  "buttonColor": "#D40511",
+  "buttonText": "Give Feedback",
+  "useDHLSurvey": true,
+  "apiUrl": "https://your-api-endpoint.com/feedback"
+}

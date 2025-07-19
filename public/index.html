@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Survey Widget Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    .content {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Survey Widget Demo</h1>
+  
+  <div class="content">
+    <p>This is a demo page to test the survey popup widget. After 3 seconds, a popup should appear in the bottom-right corner of the page.</p>
+    
+    <p>The popup is configured via the <code>/survey-config</code> endpoint on the server.</p>
+    
+    <h2>How it works</h2>
+    <ol>
+      <li>The <code>embed.js</code> script is loaded via a script tag</li>
+      <li>It dynamically loads <code>widget.js</code> which contains the popup logic</li>
+      <li>The widget fetches configuration from the server</li>
+      <li>After the configured delay, the popup appears</li>
+    </ol>
+  </div>
+  
+  <!-- Include the embed.js script to load the survey widget -->
+  <script src="/embed.js"></script>
+</body>
+</html>
