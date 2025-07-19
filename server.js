@@ -16,12 +16,6 @@ app.use(bodyParser.json());
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Create data directory if it doesn't exist
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir);
-}
-
 // Default configuration
 const defaultConfig = {
   showAfterSeconds: 3,
@@ -32,19 +26,22 @@ const defaultConfig = {
   apiUrl: process.env.API_URL || "" // Default to environment variable if available
 };
 
-// Load configuration from file if it exists
-const configFile = path.join(__dirname, 'config.json');
+// In-memory config storage for serverless environment
 let savedConfig = {};
 
-try {
-  if (fs.existsSync(configFile)) {
-    const fileContent = fs.readFileSync(configFile, 'utf8');
-    if (fileContent) {
-      savedConfig = JSON.parse(fileContent);
+// Try to load config from file in development environment
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    const configFile = path.join(__dirname, 'config.json');
+    if (fs.existsSync(configFile)) {
+      const fileContent = fs.readFileSync(configFile, 'utf8');
+      if (fileContent) {
+        savedConfig = JSON.parse(fileContent);
+      }
     }
+  } catch (error) {
+    console.error('Error loading config file:', error);
   }
-} catch (error) {
-  console.error('Error loading config file:', error);
 }
 
 // Survey configuration endpoint
@@ -91,11 +88,14 @@ app.post('/survey-config', (req, res) => {
       }
     }
     
-    // Update saved config
+    // Update saved config in memory
     savedConfig = { ...savedConfig, ...newConfig };
     
-    // Save to file
-    fs.writeFileSync(configFile, JSON.stringify(savedConfig, null, 2));
+    // Save to file only in development environment
+    if (process.env.NODE_ENV !== 'production') {
+      const configFile = path.join(__dirname, 'config.json');
+      fs.writeFileSync(configFile, JSON.stringify(savedConfig, null, 2));
+    }
     
     res.status(200).json({ 
       success: true, 
@@ -127,7 +127,15 @@ app.post('/submit-feedback', async (req, res) => {
       } catch (apiError) {
         console.error('Error sending feedback to API:', apiError.message);
         
-        // Fallback to local storage if API call fails
+        // In production, we can't save locally, so just return an error
+        if (process.env.NODE_ENV === 'production') {
+          return res.status(500).json({ 
+            success: false, 
+            message: 'Error submitting feedback to external API' 
+          });
+        }
+        
+        // In development, fallback to local storage
         saveFeedbackLocally(feedback);
         res.status(200).json({ 
           success: true, 
@@ -135,7 +143,15 @@ app.post('/submit-feedback', async (req, res) => {
         });
       }
     } else {
-      // No API URL configured, save locally
+      // No API URL configured
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'No API URL configured for feedback submission' 
+        });
+      }
+      
+      // In development, save locally
       saveFeedbackLocally(feedback);
       res.status(200).json({ success: true, message: 'Feedback saved locally' });
     }
@@ -145,8 +161,16 @@ app.post('/submit-feedback', async (req, res) => {
   }
 });
 
-// Helper function to save feedback locally
+// Helper function to save feedback locally (only used in development)
 function saveFeedbackLocally(feedback) {
+  // Only proceed if we're not in production
+  if (process.env.NODE_ENV === 'production') return;
+  
+  const dataDir = path.join(__dirname, 'data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir);
+  }
+  
   const feedbackFile = path.join(dataDir, 'feedback.json');
   
   // Read existing feedback or create empty array
@@ -166,9 +190,14 @@ function saveFeedbackLocally(feedback) {
   console.log('Feedback saved locally');
 }
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Access survey config at: http://localhost:${PORT}/survey-config`);
-  console.log(`Include widget with: <script src="http://localhost:${PORT}/embed.js"></script>`);
-});
+// For local development server
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Access survey config at: http://localhost:${PORT}/survey-config`);
+    console.log(`Include widget with: <script src="http://localhost:${PORT}/embed.js"></script>`);
+  });
+}
+
+// Export the Express API for Vercel
+module.exports = app;
