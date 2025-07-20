@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Default configuration
+
 const defaultConfig = {
   showAfterSeconds: 3,
   message: "How likely are you to recommend DHL Express to a friend or colleague?",

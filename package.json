@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node api/server.js",
     "dev": "nodemon api/server.js",
-    "build": "echo 'Build completed - static files ready for deployment'",
+    "build": "echo 'Building survey widget for Netlify deployment...' && echo 'Static files are ready in public directory'",
     "netlify-dev": "netlify dev"
   },
   "dependencies": {
