@@ -7,6 +7,6 @@
   "routes": [
     { "src": "/survey-config", "dest": "server.js" },
     { "src": "/submit-feedback", "dest": "server.js" },
-    { "src": "/(.*)", "dest": "/public/$1" }
+    { "src": "/(.*)", "dest": "/public/index.html" }
   ]
 }
