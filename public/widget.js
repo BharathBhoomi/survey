@@ -498,8 +498,8 @@
           feedbackData[key] = value;
         }
         
-        // Submit the data
-        fetch(`${baseUrl}/submit-feedback`, {
+        // Submit the data directly to dashboard API
+        fetch('https://dashboard-survey12323.vercel.app/api/surveys', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

@@ -113,8 +113,8 @@
           userAgent: navigator.userAgent
         };
         
-        // Submit data to server
-        fetch('/submit-feedback', {
+        // Submit data directly to dashboard API
+        fetch('https://dashboard-survey12323.vercel.app/api/surveys', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
