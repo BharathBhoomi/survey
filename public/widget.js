@@ -499,6 +499,7 @@
         }
         
         // Submit the data directly to dashboard API
+        console.log('🚀 Survey Widget: Posting to dashboard API (deployed version)');
         fetch('https://dashboard-survey12323.vercel.app/api/surveys', {
           method: 'POST',
           headers: {
