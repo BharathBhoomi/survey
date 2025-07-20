@@ -1,12 +1,12 @@
 {
   "version": 2,
   "builds": [
-    { "src": "server.js", "use": "@vercel/node" },
-    { "src": "public/**", "use": "@vercel/static" }
+    { "src": "api/server.js", "use": "@vercel/node" },
+    { "src": "public/**/*", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/survey-config", "dest": "server.js" },
-    { "src": "/submit-feedback", "dest": "server.js" },
+    { "src": "/survey-config", "dest": "/api/server" },
+    { "src": "/submit-feedback", "dest": "/api/server" },
     { "src": "/(.*)", "dest": "/public/index.html" }
   ]
 }
