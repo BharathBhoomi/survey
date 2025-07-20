@@ -87,24 +87,54 @@ exports.handler = async (event, context) => {
     console.log(`📥 API Response Status: ${response.status}`);
     console.log(`📥 API Response Data: ${responseData}`);
 
-    // Return the response
+    // Parse and enhance response for consistent format
+    let enhancedResponse;
+    try {
+      const parsedData = JSON.parse(responseData);
+      enhancedResponse = {
+        ...parsedData,
+        success: response.ok,
+        statusCode: response.status,
+        timestamp: new Date().toISOString()
+      };
+    } catch (parseError) {
+      // If response is not JSON, wrap it
+      enhancedResponse = {
+        data: responseData,
+        success: response.ok,
+        statusCode: response.status,
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    // Return the enhanced response
     return {
       statusCode: response.status,
       headers,
-      body: responseData
+      body: JSON.stringify(enhancedResponse)
     };
 
   } catch (error) {
     console.error('❌ Proxy Error:', error);
     
+    // Enhanced error handling with specific CORS-safe responses
+    let errorResponse = {
+      error: 'Internal server error',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+      success: false
+    };
+    
+    // Handle specific error types
+    if (error.code === 'ENOTFOUND' || error.message.includes('fetch')) {
+      errorResponse.error = 'External API unreachable';
+      errorResponse.message = 'Unable to connect to the survey API. Please try again later.';
+    }
+    
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ 
-        error: 'Internal server error',
-        message: error.message,
-        timestamp: new Date().toISOString()
-      })
+      body: JSON.stringify(errorResponse)
     };
   }
 };

@@ -523,49 +523,46 @@
         console.log('🚀 Survey Widget: Posting via Netlify proxy (CORS-safe version)');
         console.log('📊 Feedback data:', feedbackData);
         
-        // Use relative URL for Netlify function when deployed, fallback to external API for local testing
-        const apiUrl = window.location.hostname.includes('netlify.app') || window.location.hostname.includes('localhost') 
-          ? '/.netlify/functions/survey-proxy'
-          : 'https://dashboard-survey12323.vercel.app/api/surveys';
+        // Always use Netlify proxy to completely avoid CORS issues
+        const apiUrl = '/.netlify/functions/survey-proxy';
         
         console.log('🌐 Using API endpoint:', apiUrl);
         
         fetch(apiUrl, {
           method: 'POST',
-          mode: 'cors',
-          credentials: 'omit',
-          cache: 'no-cache',
           headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Origin': window.location.origin,
-            'X-Requested-With': 'XMLHttpRequest'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify(feedbackData)
         })
         .then(response => {
           console.log('📡 Response status:', response.status);
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
           return response.json();
         })
         .then(data => {
-          console.log('✅ Survey submitted successfully:', data);
-          // Show success message
-          const successMsg = document.createElement('div');
-          successMsg.className = 'success-message';
-          successMsg.textContent = 'Thank you for your feedback!';
-          successMsg.style.cssText = 'color: green; text-align: center; margin: 10px 0; font-weight: bold;';
-          form.appendChild(successMsg);
+          console.log('📥 Proxy response:', data);
           
-          // Close the form after showing success
-          setTimeout(() => {
-            container.classList.remove('visible');
+          // Check if the submission was successful
+          if (data.success || data.statusCode < 400) {
+            console.log('✅ Survey submitted successfully via proxy');
+            
+            // Show success message
+            const successMsg = document.createElement('div');
+            successMsg.className = 'success-message';
+            successMsg.textContent = 'Thank you for your feedback!';
+            successMsg.style.cssText = 'color: green; text-align: center; margin: 10px 0; font-weight: bold;';
+            form.appendChild(successMsg);
+            
+            // Close the form after showing success
             setTimeout(() => {
-              document.body.removeChild(container);
-            }, 300);
-          }, 2000);
+              container.classList.remove('visible');
+              setTimeout(() => {
+                document.body.removeChild(container);
+              }, 300);
+            }, 2000);
+          } else {
+            throw new Error(data.message || 'Survey submission failed');
+          }
         })
         .catch(error => {
           console.error('❌ Error submitting feedback:', error);
