@@ -525,9 +525,12 @@
         
         fetch('https://dashboard-survey12323.vercel.app/api/surveys', {
           method: 'POST',
+          mode: 'cors',
+          credentials: 'omit',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Origin': window.location.origin
           },
           body: JSON.stringify(feedbackData)
         })
@@ -557,19 +560,30 @@
         })
         .catch(error => {
           console.error('❌ Error submitting feedback:', error);
+          
+          // Detect CORS issues
+          let errorMessage = 'Error submitting feedback. Please try again.';
+          if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+            console.error('🚫 Possible CORS issue detected');
+            errorMessage = 'Network error: Unable to submit feedback. This may be due to CORS restrictions.';
+          } else if (error.message.includes('CORS')) {
+            console.error('🚫 CORS error detected');
+            errorMessage = 'CORS error: Cross-origin request blocked.';
+          }
+          
           // Show error message to user
           const errorMsg = document.createElement('div');
           errorMsg.className = 'error-message';
-          errorMsg.textContent = 'Error submitting feedback. Please try again.';
-          errorMsg.style.cssText = 'color: red; text-align: center; margin: 10px 0; font-weight: bold;';
+          errorMsg.textContent = errorMessage;
+          errorMsg.style.cssText = 'color: red; text-align: center; margin: 10px 0; font-weight: bold; font-size: 12px;';
           form.appendChild(errorMsg);
           
-          // Remove error message after 5 seconds
+          // Remove error message after 8 seconds for CORS errors
           setTimeout(() => {
             if (errorMsg.parentNode) {
               errorMsg.parentNode.removeChild(errorMsg);
             }
-          }, 5000);
+          }, 8000);
         });
       });
       

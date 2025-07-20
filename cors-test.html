@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test for Survey API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .success {
+            background: #28a745;
+        }
+        .error {
+            background: #dc3545;
+        }
+        .results {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>CORS Test for Survey API</h1>
+        
+        <div class="status warning">
+            <strong>⚠️ Important:</strong> This test checks if the external API at <code>dashboard-survey12323.vercel.app</code> 
+            has proper CORS headers configured to allow cross-origin requests from your domain.
+        </div>
+        
+        <div>
+            <button class="test-button" onclick="testCORSPreflight()">Test CORS Preflight (OPTIONS)</button>
+            <button class="test-button" onclick="testGETRequest()">Test GET Request</button>
+            <button class="test-button" onclick="testPOSTRequest()">Test POST Request</button>
+            <button class="test-button" onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://dashboard-survey12323.vercel.app/api/surveys';
+        const resultsDiv = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            resultsDiv.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        function clearResults() {
+            resultsDiv.textContent = '';
+        }
+        
+        async function testCORSPreflight() {
+            log('Testing CORS Preflight (OPTIONS request)...');
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                log(`OPTIONS Response Status: ${response.status}`, 'info');
+                
+                // Check CORS headers
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers'),
+                    'Access-Control-Max-Age': response.headers.get('Access-Control-Max-Age')
+                };
+                
+                log('CORS Headers received:', 'info');
+                Object.entries(corsHeaders).forEach(([key, value]) => {
+                    log(`  ${key}: ${value || 'Not set'}`, value ? 'success' : 'error');
+                });
+                
+                if (response.ok && corsHeaders['Access-Control-Allow-Origin']) {
+                    log('✅ CORS Preflight test PASSED', 'success');
+                } else {
+                    log('❌ CORS Preflight test FAILED', 'error');
+                }
+                
+            } catch (error) {
+                log(`CORS Preflight Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testGETRequest() {
+            log('Testing GET request...');
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Origin': window.location.origin
+                    }
+                });
+                
+                log(`GET Response Status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`GET Response Data: ${JSON.stringify(data, null, 2)}`, 'success');
+                    log('✅ GET request test PASSED', 'success');
+                } else {
+                    log('❌ GET request test FAILED', 'error');
+                }
+                
+            } catch (error) {
+                log(`GET Request Error: ${error.message}`, 'error');
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    log('🚫 This looks like a CORS issue!', 'error');
+                }
+            }
+        }
+        
+        async function testPOSTRequest() {
+            log('Testing POST request with sample data...');
+            
+            const testData = {
+                recommendationRating: '8',
+                satisfactionRating: '7',
+                experience: 'Test feedback from CORS test',
+                contactPermission: 'No, I don\'t want to be contacted by DHL.',
+                fullName: 'Test User',
+                phone: '+1234567890',
+                email: 'test@example.com',
+                timestamp: new Date().toISOString(),
+                source: 'cors-test',
+                userAgent: navigator.userAgent,
+                url: window.location.href
+            };
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    credentials: 'omit',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Origin': window.location.origin
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                log(`POST Response Status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`POST Response Data: ${JSON.stringify(data, null, 2)}`, 'success');
+                    log('✅ POST request test PASSED', 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`POST Error Response: ${errorText}`, 'error');
+                    log('❌ POST request test FAILED', 'error');
+                }
+                
+            } catch (error) {
+                log(`POST Request Error: ${error.message}`, 'error');
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    log('🚫 This looks like a CORS issue!', 'error');
+                    log('💡 The API server needs to include proper CORS headers:', 'info');
+                    log('   - Access-Control-Allow-Origin: * (or your domain)', 'info');
+                    log('   - Access-Control-Allow-Methods: GET, POST, OPTIONS', 'info');
+                    log('   - Access-Control-Allow-Headers: Content-Type, Accept, Origin', 'info');
+                }
+            }
+        }
+        
+        // Auto-run basic test on page load
+        window.addEventListener('load', () => {
+            log('CORS Test Tool Loaded');
+            log(`Testing API: ${API_URL}`);
+            log(`Origin: ${window.location.origin}`);
+            log('Click the buttons above to run specific tests.');
+        });
+    </script>
+</body>
+</html>
