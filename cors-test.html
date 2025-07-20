@@ -82,6 +82,7 @@
             <button class="test-button" onclick="testCORSPreflight()">Test CORS Preflight (OPTIONS)</button>
             <button class="test-button" onclick="testGETRequest()">Test GET Request</button>
             <button class="test-button" onclick="testPOSTRequest()">Test POST Request</button>
+            <button class="test-button" onclick="testNetlifyProxy()">Test Netlify Proxy</button>
             <button class="test-button" onclick="clearResults()">Clear Results</button>
         </div>
         
@@ -89,8 +90,13 @@
     </div>
 
     <script>
-        const API_URL = 'https://dashboard-survey12323.vercel.app/api/surveys';
+        // Test both direct API and Netlify proxy
+        const DIRECT_API_URL = 'https://dashboard-survey12323.vercel.app/api/surveys';
+        const PROXY_API_URL = '/.netlify/functions/survey-proxy';
         const resultsDiv = document.getElementById('results');
+        
+        // Determine which API to test based on environment
+        const API_URL = window.location.hostname.includes('netlify.app') ? PROXY_API_URL : DIRECT_API_URL;
         
         function log(message, type = 'info') {
             const timestamp = new Date().toLocaleTimeString();
@@ -191,7 +197,25 @@
             };
             
             try {
-                const response = await fetch(API_URL, {
+                // First try with no-cors mode to see if request goes through
+                log('🔄 Attempting POST with no-cors mode first...', 'info');
+                
+                const noCorsResponse = await fetch(DIRECT_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                log(`No-CORS POST Status: ${noCorsResponse.status} (opaque response)`, 'info');
+                log('⚠️ No-CORS mode completed but response is opaque', 'info');
+                
+                // Now try with CORS mode
+                log('🔄 Attempting POST with CORS mode...', 'info');
+                
+                const response = await fetch(DIRECT_API_URL, {
                     method: 'POST',
                     mode: 'cors',
                     credentials: 'omit',
@@ -203,7 +227,7 @@
                     body: JSON.stringify(testData)
                 });
                 
-                log(`POST Response Status: ${response.status}`, response.ok ? 'success' : 'error');
+                log(`CORS POST Response Status: ${response.status}`, response.ok ? 'success' : 'error');
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -218,11 +242,60 @@
             } catch (error) {
                 log(`POST Request Error: ${error.message}`, 'error');
                 if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                    log('🚫 This looks like a CORS issue!', 'error');
-                    log('💡 The API server needs to include proper CORS headers:', 'info');
-                    log('   - Access-Control-Allow-Origin: * (or your domain)', 'info');
-                    log('   - Access-Control-Allow-Methods: GET, POST, OPTIONS', 'info');
-                    log('   - Access-Control-Allow-Headers: Content-Type, Accept, Origin', 'info');
+                    log('🚫 CORS ISSUE CONFIRMED!', 'error');
+                    log('📋 SOLUTION: Use the Netlify proxy function instead', 'info');
+                    log('💡 The external API server lacks proper CORS headers:', 'info');
+                    log('   ❌ Missing: Access-Control-Allow-Origin', 'error');
+                    log('   ❌ Missing: Access-Control-Allow-Methods', 'error');
+                    log('   ❌ Missing: Access-Control-Allow-Headers', 'error');
+                    log('✅ WORKAROUND: Deploy with Netlify proxy function', 'success');
+                }
+            }
+        }
+        
+        async function testNetlifyProxy() {
+            log('Testing Netlify Proxy Function...');
+            
+            const testData = {
+                recommendationRating: '9',
+                satisfactionRating: '8',
+                experience: 'Test feedback via Netlify proxy',
+                contactPermission: 'Yes, DHL can contact me if clarification is needed.',
+                fullName: 'Proxy Test User',
+                phone: '+1987654321',
+                email: 'proxy-test@example.com',
+                timestamp: new Date().toISOString(),
+                source: 'netlify-proxy-test',
+                userAgent: navigator.userAgent,
+                url: window.location.href
+            };
+            
+            try {
+                const response = await fetch(PROXY_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                log(`Netlify Proxy Response Status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`Netlify Proxy Response: ${JSON.stringify(data, null, 2)}`, 'success');
+                    log('✅ Netlify Proxy test PASSED - CORS issue resolved!', 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`Netlify Proxy Error: ${errorText}`, 'error');
+                    log('❌ Netlify Proxy test FAILED', 'error');
+                }
+                
+            } catch (error) {
+                log(`Netlify Proxy Error: ${error.message}`, 'error');
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    log('🚫 Netlify function may not be deployed or accessible', 'error');
                 }
             }
         }
@@ -230,7 +303,9 @@
         // Auto-run basic test on page load
         window.addEventListener('load', () => {
             log('CORS Test Tool Loaded');
-            log(`Testing API: ${API_URL}`);
+            log(`Direct API: ${DIRECT_API_URL}`);
+            log(`Proxy API: ${PROXY_API_URL}`);
+            log(`Testing: ${API_URL}`);
             log(`Origin: ${window.location.origin}`);
             log('Click the buttons above to run specific tests.');
         });

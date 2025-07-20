@@ -1,10 +1,11 @@
 /*
-  X-Frame-Options: DENY
+  X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Access-Control-Allow-Origin: *
-  Access-Control-Allow-Methods: GET, POST, OPTIONS
-  Access-Control-Allow-Headers: Content-Type
+  Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+  Access-Control-Allow-Headers: Content-Type, Accept, Authorization, Origin, X-Requested-With
+  Access-Control-Max-Age: 86400
 
 /embed.js
   Cache-Control: public, max-age=3600
@@ -16,5 +17,6 @@
 
 /.netlify/functions/*
   Access-Control-Allow-Origin: *
-  Access-Control-Allow-Methods: GET, POST, OPTIONS
-  Access-Control-Allow-Headers: Content-Type
+  Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+  Access-Control-Allow-Headers: Content-Type, Accept, Authorization, Origin, X-Requested-With
+  Access-Control-Max-Age: 86400

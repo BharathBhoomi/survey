@@ -519,18 +519,27 @@
           feedbackData[key] = value;
         }
         
-        // Submit the data directly to dashboard API
-        console.log('🚀 Survey Widget: Posting to dashboard API (deployed version)');
+        // Submit the data via Netlify function proxy to avoid CORS issues
+        console.log('🚀 Survey Widget: Posting via Netlify proxy (CORS-safe version)');
         console.log('📊 Feedback data:', feedbackData);
         
-        fetch('https://dashboard-survey12323.vercel.app/api/surveys', {
+        // Use relative URL for Netlify function when deployed, fallback to external API for local testing
+        const apiUrl = window.location.hostname.includes('netlify.app') || window.location.hostname.includes('localhost') 
+          ? '/.netlify/functions/survey-proxy'
+          : 'https://dashboard-survey12323.vercel.app/api/surveys';
+        
+        console.log('🌐 Using API endpoint:', apiUrl);
+        
+        fetch(apiUrl, {
           method: 'POST',
           mode: 'cors',
           credentials: 'omit',
+          cache: 'no-cache',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'Origin': window.location.origin
+            'Origin': window.location.origin,
+            'X-Requested-With': 'XMLHttpRequest'
           },
           body: JSON.stringify(feedbackData)
         })

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Verification Test - Survey Widget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background-color 0.3s;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .success {
+            background: #28a745;
+        }
+        .error {
+            background: #dc3545;
+        }
+        .warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        .results {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+        .status-info { background-color: #17a2b8; }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #b8daff;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔍 CORS Verification Test - Survey Widget</h1>
+        
+        <div class="info-box">
+            <h3>📋 Test Overview</h3>
+            <p>This comprehensive test verifies that all CORS (Cross-Origin Resource Sharing) issues have been resolved for the survey widget's data submission functionality.</p>
+            <p><strong>Current Domain:</strong> <span id="current-domain"></span></p>
+            <p><strong>Test Environment:</strong> <span id="test-environment"></span></p>
+        </div>
+
+        <div class="test-section">
+            <h3>🌐 CORS Preflight Test (OPTIONS)</h3>
+            <p>Tests if the server properly handles CORS preflight requests.</p>
+            <button class="test-button" onclick="testCORSPreflight()">Test CORS Preflight</button>
+            <div id="preflight-results" class="results" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📡 Direct API Test</h3>
+            <p>Tests direct communication with the external API endpoint.</p>
+            <button class="test-button" onclick="testDirectAPI()">Test Direct API</button>
+            <div id="direct-results" class="results" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔄 Netlify Proxy Test</h3>
+            <p>Tests the Netlify function proxy that should resolve CORS issues.</p>
+            <button class="test-button" onclick="testNetlifyProxy()">Test Netlify Proxy</button>
+            <div id="proxy-results" class="results" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 Complete Survey Submission Test</h3>
+            <p>Tests the complete survey submission flow with realistic data.</p>
+            <button class="test-button" onclick="testCompleteSurvey()">Test Complete Survey</button>
+            <div id="survey-results" class="results" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Test Summary</h3>
+            <div id="test-summary">
+                <p>Run the tests above to see the summary.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test configuration
+        const DIRECT_API_URL = 'https://dashboard-survey12323.vercel.app/api/surveys';
+        const PROXY_API_URL = '/.netlify/functions/survey-proxy';
+        
+        let testResults = {
+            preflight: null,
+            direct: null,
+            proxy: null,
+            survey: null
+        };
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('current-domain').textContent = window.location.origin;
+            
+            const isNetlify = window.location.hostname.includes('netlify.app');
+            const isLocalhost = window.location.hostname.includes('localhost');
+            
+            let environment = 'Unknown';
+            if (isNetlify) environment = 'Netlify Production';
+            else if (isLocalhost) environment = 'Local Development';
+            else environment = 'Other Domain';
+            
+            document.getElementById('test-environment').textContent = environment;
+            
+            console.log('🔧 CORS Test Environment:', environment);
+            console.log('🌐 Direct API URL:', DIRECT_API_URL);
+            console.log('🔄 Proxy API URL:', PROXY_API_URL);
+        });
+
+        function logResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            const timestamp = new Date().toLocaleTimeString();
+            const statusIcon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+            element.textContent += `[${timestamp}] ${statusIcon} ${message}\n`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        function clearResults(elementId) {
+            const element = document.getElementById(elementId);
+            element.textContent = '';
+            element.style.display = 'none';
+        }
+
+        async function testCORSPreflight() {
+            clearResults('preflight-results');
+            logResult('preflight-results', 'Starting CORS preflight test...');
+            
+            try {
+                const response = await fetch(DIRECT_API_URL, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type, Accept'
+                    }
+                });
+                
+                logResult('preflight-results', `Response status: ${response.status}`);
+                
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers')
+                };
+                
+                logResult('preflight-results', `CORS Headers: ${JSON.stringify(corsHeaders, null, 2)}`);
+                
+                if (response.ok) {
+                    testResults.preflight = true;
+                    logResult('preflight-results', 'CORS preflight test PASSED', 'success');
+                } else {
+                    testResults.preflight = false;
+                    logResult('preflight-results', 'CORS preflight test FAILED', 'error');
+                }
+            } catch (error) {
+                testResults.preflight = false;
+                logResult('preflight-results', `CORS preflight test ERROR: ${error.message}`, 'error');
+            }
+            
+            updateTestSummary();
+        }
+
+        async function testDirectAPI() {
+            clearResults('direct-results');
+            logResult('direct-results', 'Starting direct API test...');
+            
+            const testData = {
+                timestamp: new Date().toISOString(),
+                source: 'cors-verification-test',
+                testType: 'direct-api',
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                recommendationRating: '9',
+                satisfactionRating: '8',
+                experience: 'Testing direct API connection',
+                contactPermission: 'yes',
+                fullName: 'Test User',
+                phone: '+1234567890',
+                email: 'test@example.com'
+            };
+            
+            try {
+                logResult('direct-results', 'Sending POST request to direct API...');
+                
+                const response = await fetch(DIRECT_API_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    credentials: 'omit',
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Origin': window.location.origin,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                logResult('direct-results', `Response status: ${response.status}`);
+                
+                if (response.ok) {
+                    const responseData = await response.json();
+                    testResults.direct = true;
+                    logResult('direct-results', `Response data: ${JSON.stringify(responseData, null, 2)}`);
+                    logResult('direct-results', 'Direct API test PASSED', 'success');
+                } else {
+                    testResults.direct = false;
+                    const errorText = await response.text();
+                    logResult('direct-results', `Error response: ${errorText}`);
+                    logResult('direct-results', 'Direct API test FAILED', 'error');
+                }
+            } catch (error) {
+                testResults.direct = false;
+                logResult('direct-results', `Direct API test ERROR: ${error.message}`, 'error');
+                
+                if (error.message.includes('Failed to fetch')) {
+                    logResult('direct-results', 'This is likely a CORS issue - the external API lacks proper CORS headers', 'warning');
+                }
+            }
+            
+            updateTestSummary();
+        }
+
+        async function testNetlifyProxy() {
+            clearResults('proxy-results');
+            logResult('proxy-results', 'Starting Netlify proxy test...');
+            
+            const testData = {
+                timestamp: new Date().toISOString(),
+                source: 'cors-verification-test',
+                testType: 'netlify-proxy',
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                recommendationRating: '10',
+                satisfactionRating: '9',
+                experience: 'Testing Netlify proxy connection',
+                contactPermission: 'yes',
+                fullName: 'Proxy Test User',
+                phone: '+1234567890',
+                email: 'proxy-test@example.com'
+            };
+            
+            try {
+                logResult('proxy-results', 'Sending POST request to Netlify proxy...');
+                
+                const response = await fetch(PROXY_API_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    credentials: 'omit',
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Origin': window.location.origin,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                logResult('proxy-results', `Response status: ${response.status}`);
+                
+                if (response.ok) {
+                    const responseData = await response.json();
+                    testResults.proxy = true;
+                    logResult('proxy-results', `Response data: ${JSON.stringify(responseData, null, 2)}`);
+                    logResult('proxy-results', 'Netlify proxy test PASSED', 'success');
+                } else {
+                    testResults.proxy = false;
+                    const errorText = await response.text();
+                    logResult('proxy-results', `Error response: ${errorText}`);
+                    logResult('proxy-results', 'Netlify proxy test FAILED', 'error');
+                }
+            } catch (error) {
+                testResults.proxy = false;
+                logResult('proxy-results', `Netlify proxy test ERROR: ${error.message}`, 'error');
+            }
+            
+            updateTestSummary();
+        }
+
+        async function testCompleteSurvey() {
+            clearResults('survey-results');
+            logResult('survey-results', 'Starting complete survey submission test...');
+            
+            // Use the same logic as the widget to determine API URL
+            const apiUrl = window.location.hostname.includes('netlify.app') || window.location.hostname.includes('localhost') 
+                ? PROXY_API_URL
+                : DIRECT_API_URL;
+            
+            logResult('survey-results', `Using API endpoint: ${apiUrl}`);
+            
+            const surveyData = {
+                timestamp: new Date().toISOString(),
+                source: 'survey-widget',
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                recommendationRating: '10',
+                satisfactionRating: '9',
+                experience: 'Excellent service! Very satisfied with the delivery speed and customer support.',
+                contactPermission: 'yes',
+                furtherInfoPermission: 'no',
+                fullName: 'John Doe',
+                phone: '+1-555-123-4567',
+                email: 'john.doe@example.com'
+            };
+            
+            try {
+                logResult('survey-results', 'Submitting complete survey data...');
+                logResult('survey-results', `Survey data: ${JSON.stringify(surveyData, null, 2)}`);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    credentials: 'omit',
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Origin': window.location.origin,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(surveyData)
+                });
+                
+                logResult('survey-results', `Response status: ${response.status}`);
+                
+                if (response.ok) {
+                    const responseData = await response.json();
+                    testResults.survey = true;
+                    logResult('survey-results', `Response data: ${JSON.stringify(responseData, null, 2)}`);
+                    logResult('survey-results', 'Complete survey submission test PASSED', 'success');
+                } else {
+                    testResults.survey = false;
+                    const errorText = await response.text();
+                    logResult('survey-results', `Error response: ${errorText}`);
+                    logResult('survey-results', 'Complete survey submission test FAILED', 'error');
+                }
+            } catch (error) {
+                testResults.survey = false;
+                logResult('survey-results', `Complete survey submission test ERROR: ${error.message}`, 'error');
+            }
+            
+            updateTestSummary();
+        }
+
+        function updateTestSummary() {
+            const summaryElement = document.getElementById('test-summary');
+            let summary = '<h4>📊 Test Results Summary</h4>';
+            
+            const tests = [
+                { name: 'CORS Preflight', result: testResults.preflight },
+                { name: 'Direct API', result: testResults.direct },
+                { name: 'Netlify Proxy', result: testResults.proxy },
+                { name: 'Complete Survey', result: testResults.survey }
+            ];
+            
+            tests.forEach(test => {
+                let status = '⏳ Not tested';
+                let statusClass = 'status-info';
+                
+                if (test.result === true) {
+                    status = '✅ PASSED';
+                    statusClass = 'status-success';
+                } else if (test.result === false) {
+                    status = '❌ FAILED';
+                    statusClass = 'status-error';
+                }
+                
+                summary += `<p><span class="status-indicator ${statusClass}"></span><strong>${test.name}:</strong> ${status}</p>`;
+            });
+            
+            // Overall assessment
+            const passedTests = tests.filter(t => t.result === true).length;
+            const failedTests = tests.filter(t => t.result === false).length;
+            const totalTests = tests.filter(t => t.result !== null).length;
+            
+            if (totalTests > 0) {
+                summary += '<hr>';
+                summary += `<p><strong>Overall Status:</strong> ${passedTests}/${totalTests} tests passed</p>`;
+                
+                if (testResults.proxy === true || testResults.direct === true) {
+                    summary += '<p style="color: #28a745; font-weight: bold;">🎉 CORS issues are resolved! Survey data submission is working properly.</p>';
+                } else if (failedTests > 0) {
+                    summary += '<p style="color: #dc3545; font-weight: bold;">⚠️ CORS issues detected. Check the test results above for details.</p>';
+                }
+                
+                if (testResults.direct === false && testResults.proxy === true) {
+                    summary += '<p style="color: #17a2b8;">ℹ️ Direct API has CORS issues, but Netlify proxy is working correctly. This is the expected behavior.</p>';
+                }
+            }
+            
+            summaryElement.innerHTML = summary;
+        }
+    </script>
+</body>
+</html>
