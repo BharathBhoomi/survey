@@ -490,9 +490,30 @@
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         
+        // Validate required fields
+        const requiredFields = ['recommendationRating', 'satisfactionRating', 'contactPermission', 'fullName', 'phone', 'email'];
+        const missingFields = [];
+        
+        requiredFields.forEach(field => {
+          const input = form.querySelector(`[name="${field}"]`);
+          if (!input || !input.value.trim()) {
+            missingFields.push(field);
+          }
+        });
+        
+        if (missingFields.length > 0) {
+          alert('Please fill in all required fields: ' + missingFields.join(', '));
+          return;
+        }
+        
         // Collect form data
         const formData = new FormData(form);
-        const feedbackData = {};
+        const feedbackData = {
+          timestamp: new Date().toISOString(),
+          source: 'survey-widget',
+          userAgent: navigator.userAgent,
+          url: window.location.href
+        };
         
         for (const [key, value] of formData.entries()) {
           feedbackData[key] = value;
@@ -500,27 +521,55 @@
         
         // Submit the data directly to dashboard API
         console.log('🚀 Survey Widget: Posting to dashboard API (deployed version)');
+        console.log('📊 Feedback data:', feedbackData);
+        
         fetch('https://dashboard-survey12323.vercel.app/api/surveys', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
           body: JSON.stringify(feedbackData)
         })
-        .then(response => response.json())
+        .then(response => {
+          console.log('📡 Response status:', response.status);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
         .then(data => {
-          if (data.success) {
-            // Close the form without alert
+          console.log('✅ Survey submitted successfully:', data);
+          // Show success message
+          const successMsg = document.createElement('div');
+          successMsg.className = 'success-message';
+          successMsg.textContent = 'Thank you for your feedback!';
+          successMsg.style.cssText = 'color: green; text-align: center; margin: 10px 0; font-weight: bold;';
+          form.appendChild(successMsg);
+          
+          // Close the form after showing success
+          setTimeout(() => {
             container.classList.remove('visible');
             setTimeout(() => {
               document.body.removeChild(container);
             }, 300);
-          } else {
-            console.error('Error submitting feedback:', data.message);
-          }
+          }, 2000);
         })
         .catch(error => {
-          console.error('Error submitting feedback:', error);
+          console.error('❌ Error submitting feedback:', error);
+          // Show error message to user
+          const errorMsg = document.createElement('div');
+          errorMsg.className = 'error-message';
+          errorMsg.textContent = 'Error submitting feedback. Please try again.';
+          errorMsg.style.cssText = 'color: red; text-align: center; margin: 10px 0; font-weight: bold;';
+          form.appendChild(errorMsg);
+          
+          // Remove error message after 5 seconds
+          setTimeout(() => {
+            if (errorMsg.parentNode) {
+              errorMsg.parentNode.removeChild(errorMsg);
+            }
+          }, 5000);
         });
       });
       
